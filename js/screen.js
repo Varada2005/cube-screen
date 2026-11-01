@@ -126,7 +126,6 @@ window.CubeScreen = (() => {
 
     resize(entry) {
       const box = entry && entry.devicePixelContentBoxSize && entry.devicePixelContentBoxSize[0];
-      // Both sizes ignore CSS 3D transforms, so cube faces render at their flat size.
       const size = box ? box.inlineSize : Math.round(this.canvas.clientWidth * (window.devicePixelRatio || 1));
       if (size && size !== this.canvas.width) {
         for (const c of [this.canvas, this.leds, this.bloom]) c.width = c.height = size;

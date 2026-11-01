@@ -1,4 +1,5 @@
-/* the cube: image queues, slideshow, settings and views. Nothing persists between sessions. */
+/* the cube: image queue, slideshow and settings.
+   Settings are saved in this browser; images live only in the open tab. */
 'use strict';
 
 (() => {
@@ -14,9 +15,32 @@
     transition: true,
     autoplay: false,
     interval: 3,
-    angle: 38,
   };
-  const settings = { ...DEFAULTS };
+  const STORAGE_KEY = 'the-cube.settings';
+  const settings = { ...DEFAULTS, ...loadSettings() };
+
+  // Only keep known keys of the right type, so a stale or edited entry can't break the page.
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const clean = {};
+      for (const key of Object.keys(DEFAULTS)) {
+        if (typeof saved[key] === typeof DEFAULTS[key]) clean[key] = saved[key];
+      }
+      if (![24, 32, 64].includes(clean.res)) delete clean.res;
+      return clean;
+    } catch {
+      return {};
+    }
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch {
+      // Storage unavailable (private window, blocked site data): settings last for this tab only.
+    }
+  }
 
   const ACCEPT = /^image\/(png|jpe?g|webp|gif)$/;
   const THUMB_MIME = 'application/x-cube-thumb';
@@ -38,7 +62,7 @@
     document.documentElement.style.setProperty('--noise', `url(${c.toDataURL()})`);
   })();
 
-  // Shown while a queue is empty.
+  // Shown while the queue is empty.
   const placeholder = (() => {
     const c = document.createElement('canvas');
     c.width = c.height = 256;
@@ -240,75 +264,53 @@
     }
   }
 
-  const players = {
-    main: new Player('main'),
-    left: new Player('left'),
-    right: new Player('right'),
-  };
-  const allPlayers = Object.values(players);
-
-  /* Views */
-  let view = 'single';
-  let focused = players.left;
-
-  function setView(next) {
-    view = next;
-    $$('[data-view]').forEach((el) => (el.hidden = el.dataset.view !== view));
-    $$('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === view)));
-    document.body.classList.toggle('in-cube', view === 'cube');
-    restartAutoplay();
-  }
-  $$('[data-tab]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.tab)));
-
-  function setFocus(player) {
-    focused = player;
-    $$('.queue').forEach((q) => q.classList.toggle('focused', q.dataset.player === player.id));
-  }
-  $$('.view-cube [data-player]').forEach((el) =>
-    el.addEventListener('pointerdown', () => setFocus(players[el.dataset.player]))
-  );
-  setFocus(players.left);
-
-  const visiblePlayers = () => (view === 'single' ? [players.main] : [players.left, players.right]);
+  const player = new Player('main');
 
   /* Auto-play */
   let timer = null;
   function restartAutoplay() {
     clearInterval(timer);
     timer = null;
-    if (settings.autoplay) {
-      timer = setInterval(() => visiblePlayers().forEach((p) => p.next()), Math.max(0.5, settings.interval) * 1000);
-    }
+    if (settings.autoplay) timer = setInterval(() => player.next(), Math.max(0.5, settings.interval) * 1000);
   }
+
+  /* Settings drawer */
+  const panel = $('#panel');
+  const toggle = $('#settings-toggle');
+  function setPanel(open) {
+    document.body.classList.toggle('panel-open', open);
+    panel.inert = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) $('#settings-close').focus();
+    else if (panel.contains(document.activeElement)) toggle.focus();
+  }
+  toggle.addEventListener('click', () => setPanel(!document.body.classList.contains('panel-open')));
+  $('#settings-close').addEventListener('click', () => setPanel(false));
+  $('#scrim').addEventListener('click', () => setPanel(false));
 
   /* Keyboard */
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('panel-open')) {
+      setPanel(false);
+      return;
+    }
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target.closest && e.target.closest('input, textarea, select')) return;
     e.preventDefault();
-    const targets = view === 'single' ? [players.main] : e.shiftKey ? visiblePlayers() : [focused];
-    targets.forEach((p) => (e.key === 'ArrowLeft' ? p.prev() : p.next()));
+    if (e.key === 'ArrowLeft') player.prev();
+    else player.next();
     restartAutoplay();
   });
 
   /* File drag and drop anywhere on the page */
   const overlay = $('#drop-overlay');
-  const dropLabel = $('#drop-label');
   const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
-  const NAMES = { main: 'the screen', left: 'the left face', right: 'the right face' };
-
-  function playerFor(target) {
-    if (view === 'single') return players.main;
-    const host = target && target.closest && target.closest('[data-player]');
-    return host ? players[host.dataset.player] : focused;
-  }
 
   window.addEventListener('dragover', (e) => {
     if (!hasFiles(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-    dropLabel.textContent = `Drop images to add to ${NAMES[playerFor(e.target).id]}`;
     overlay.classList.add('show');
   });
   window.addEventListener('dragleave', (e) => {
@@ -318,8 +320,6 @@
     overlay.classList.remove('show');
     if (!hasFiles(e)) return;
     e.preventDefault();
-    const player = playerFor(e.target);
-    if (view === 'cube') setFocus(player);
     player.add(e.dataTransfer.files);
   });
 
@@ -329,7 +329,6 @@
     glow: (v) => `${Math.round(v * 100)}%`,
     blur: (v) => `${Math.round(v * 100)}%`,
     gap: (v) => `${Math.round(v * 100)}%`,
-    angle: (v) => `${v}°`,
   };
 
   function syncControls() {
@@ -340,14 +339,14 @@
     });
     Object.keys(FORMAT).forEach((key) => ($(`output[data-for="${key}"]`).textContent = FORMAT[key](settings[key])));
     $$('#res button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.res === settings.res)));
-    $('#cube').style.setProperty('--angle', settings.angle);
   }
 
   function applySetting(key) {
     syncControls();
-    if (key === 'res') allPlayers.forEach((p) => p.refresh());
+    saveSettings();
+    if (key === 'res') player.refresh();
     else if (key === 'autoplay' || key === 'interval') restartAutoplay();
-    else if (key !== 'angle') allPlayers.forEach((p) => p.screen.requestRender());
+    else player.screen.requestRender();
   }
 
   $$('[data-setting]').forEach((input) => {
@@ -379,7 +378,8 @@
   });
 
   syncControls();
+  restartAutoplay();
 
   // Handy for poking at things from the console.
-  window.cube = { players, settings };
+  window.cube = { player, settings };
 })();

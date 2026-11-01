@@ -12,7 +12,6 @@
   --knob: #5f948f;
   --window: #15110e;
   --noise: none;
-  --angle: 38;
   color-scheme: light;
 }
 
@@ -30,14 +29,12 @@ button { font: inherit; color: inherit; }
 
 .app {
   display: grid;
-  grid-template-columns: 1fr 290px;
   grid-template-rows: auto 1fr;
   height: 100svh;
 }
 
 /* Top bar */
 .topbar {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -52,14 +49,14 @@ button { font: inherit; color: inherit; }
 .name { font-weight: 650; letter-spacing: 0.01em; }
 .sub { color: var(--muted); }
 
-.tabs, .seg {
+.seg {
   display: inline-flex;
   padding: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid var(--line);
 }
-.tabs button, .seg button {
+.seg button {
   border: 0;
   background: none;
   padding: 6px 14px;
@@ -68,7 +65,7 @@ button { font: inherit; color: inherit; }
   color: var(--muted);
   transition: background 0.2s, color 0.2s;
 }
-.tabs button[aria-selected="true"], .seg button[aria-pressed="true"] {
+.seg button[aria-pressed="true"] {
   background: #fff;
   color: var(--ink);
   box-shadow: 0 1px 3px rgba(44, 70, 66, 0.12);
@@ -93,7 +90,7 @@ button { font: inherit; color: inherit; }
 .device {
   position: relative;
   isolation: isolate;
-  width: clamp(220px, min(86cqi, 100svh - 330px), 640px);
+  width: clamp(220px, min(86cqi, 100svh - 340px), 720px);
   aspect-ratio: 1;
   margin-top: 4%;
 }
@@ -252,69 +249,45 @@ canvas.screen { display: block; width: 100%; height: 100%; }
 
 .hint { margin: 0; color: var(--muted); font-size: 12.5px; text-align: center; }
 
-/* Cube view */
-.cube-scene {
-  position: relative;
-  perspective: 1800px;
-  display: flex;
-  justify-content: center;
-  padding: 24px 0 36px;
-}
-.cube {
-  display: flex;
-  transform-style: preserve-3d;
-  transform: rotateX(14deg);
-}
-.face {
-  position: relative;
-  width: clamp(150px, min(36cqi, 100svh - 400px), 420px);
-  aspect-ratio: 1;
-  cursor: pointer;
-}
-.face .bezel { border-radius: 16%; }
-/* The two faces share the cube's ridge edge, so that edge stays nearly square. */
-.face-left .bezel { border-radius: 16% 3% 3% 16%; }
-.face-right .bezel { border-radius: 3% 16% 16% 3%; }
-.face-left { transform-origin: right center; transform: rotateY(calc(var(--angle) * -1deg)); }
-.face-right { transform-origin: left center; transform: rotateY(calc(var(--angle) * 1deg)); }
-.face-left .bezel { background: linear-gradient(160deg, #86bab5, #72a8a3 60%, #669c97); }
-.cube-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  width: 60%;
-  height: 26px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(30, 80, 75, 0.3), transparent);
-  pointer-events: none;
-}
-.queues {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  width: min(100%, 900px);
-}
-.queue {
-  min-width: 0;
-  padding: 12px 14px 4px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid var(--line);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.queue.focused { border-color: rgba(77, 141, 135, 0.5); box-shadow: 0 0 0 3px rgba(77, 141, 135, 0.14); }
-.queue header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.queue h3 { margin: 0; font-size: 13px; font-weight: 600; }
-.queue .strip { max-width: 100%; }
-
-/* Settings panel */
+/* Settings drawer: hidden until the settings button opens it */
 .panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 6;
+  width: min(300px, calc(100vw - 24px));
   overflow: auto;
-  padding: 6px 22px 24px;
-  border-left: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.35);
+  padding: 6px 22px 20px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(244, 251, 248, 0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 60px -24px rgba(30, 80, 75, 0.4);
+  transform: translateX(calc(100% + 24px));
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s 0.32s;
 }
+body.panel-open .panel {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: rgba(44, 70, 66, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+body.panel-open .scrim { opacity: 1; pointer-events: auto; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.panel-head h2 { margin: 0; }
+.round.small { width: 32px; height: 32px; }
+#settings-toggle svg circle { fill: var(--bg-hi); }
+.saved { margin: 12px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
 .panel h2 {
   margin: 18px 0 6px;
   font-size: 11.5px;
@@ -402,9 +375,6 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px 
 }
 .number input:focus { outline: 2px solid rgba(77, 141, 135, 0.4); outline-offset: 1px; }
 
-.cube-only { display: none; }
-body.in-cube .cube-only { display: block; }
-
 .ghost {
   margin-top: 22px;
   width: 100%;
@@ -442,11 +412,8 @@ body.in-cube .cube-only { display: block; }
 
 @media (max-width: 860px) {
   .app { display: block; height: auto; }
-  .topbar { padding: 12px 16px; flex-wrap: wrap; }
+  .topbar { padding: 12px 16px; }
   .sub { display: none; }
   .stage { padding: 8px 16px 20px; }
   .device { width: clamp(220px, 86cqi, 520px); }
-  .face { width: clamp(120px, 40cqi, 300px); }
-  .queues { grid-template-columns: 1fr; }
-  .panel { border-left: 0; border-top: 1px solid var(--line); padding: 4px 16px 24px; }
 }
