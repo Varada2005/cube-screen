@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>the cube · pixel screen</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="name">the cube</span>
+        <span class="sub">pixel screen prototype</span>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="single" aria-selected="true">Screen</button>
+        <button role="tab" data-tab="cube" aria-selected="false">Cube view</button>
+      </nav>
+    </header>
+
+    <main class="stage">
+      <!-- Single screen -->
+      <section class="view view-single" data-view="single">
+        <div class="device" data-player="main">
+          <span class="knob knob-l"></span>
+          <span class="knob knob-r"></span>
+          <div class="bezel"><div class="window"><canvas class="screen" id="screen-main"></canvas></div></div>
+        </div>
+        <div class="transport">
+          <button class="round" id="prev-main" aria-label="Previous image"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <span class="counter" id="counter-main"></span>
+          <button class="round" id="next-main" aria-label="Next image"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="strip" id="strip-main" data-player="main"></div>
+        <p class="hint">Drop PNG or JPG files anywhere · ← → to step · drag thumbnails to reorder</p>
+      </section>
+
+      <!-- Cube view: two faces, each with its own queue -->
+      <section class="view view-cube" data-view="cube" hidden>
+        <div class="cube-scene">
+          <div class="cube" id="cube">
+            <div class="face face-left" data-player="left">
+              <div class="bezel"><div class="window"><canvas class="screen" id="screen-left"></canvas></div></div>
+            </div>
+            <div class="face face-right" data-player="right">
+              <div class="bezel"><div class="window"><canvas class="screen" id="screen-right"></canvas></div></div>
+            </div>
+          </div>
+          <div class="cube-shadow"></div>
+        </div>
+        <div class="queues">
+          <section class="queue" data-player="left">
+            <header>
+              <h3>Left face</h3>
+              <div class="transport small">
+                <button class="round" id="prev-left" aria-label="Previous image on left face"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+                <span class="counter" id="counter-left"></span>
+                <button class="round" id="next-left" aria-label="Next image on left face"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+              </div>
+            </header>
+            <div class="strip" id="strip-left" data-player="left"></div>
+          </section>
+          <section class="queue" data-player="right">
+            <header>
+              <h3>Right face</h3>
+              <div class="transport small">
+                <button class="round" id="prev-right" aria-label="Previous image on right face"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+                <span class="counter" id="counter-right"></span>
+                <button class="round" id="next-right" aria-label="Next image on right face"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+              </div>
+            </header>
+            <div class="strip" id="strip-right" data-player="right"></div>
+          </section>
+        </div>
+        <p class="hint">Click a face or its queue to select it · ← → steps the selected face · Shift + ← → steps both</p>
+      </section>
+    </main>
+
+    <aside class="panel">
+      <h2>Display</h2>
+      <div class="field">
+        <span class="label">Resolution</span>
+        <div class="seg" id="res">
+          <button data-res="24">24</button>
+          <button data-res="32">32</button>
+          <button data-res="64">64</button>
+        </div>
+      </div>
+      <label class="switch-row">
+        <span>Matte <small>e-ink look</small></span>
+        <input type="checkbox" data-setting="matte"><span class="switch"></span>
+      </label>
+      <div class="slider">
+        <div class="slider-head"><span>Brightness</span><output data-for="brightness"></output></div>
+        <input type="range" data-setting="brightness" min="0.3" max="1.6" step="0.01">
+      </div>
+      <div class="slider">
+        <div class="slider-head"><span>Glow</span><output data-for="glow"></output></div>
+        <input type="range" data-setting="glow" min="0" max="1.5" step="0.01">
+      </div>
+      <div class="slider">
+        <div class="slider-head"><span>Diffuser</span><output data-for="blur"></output></div>
+        <input type="range" data-setting="blur" min="0" max="1" step="0.01">
+      </div>
+      <div class="slider">
+        <div class="slider-head"><span>Gap</span><output data-for="gap"></output></div>
+        <input type="range" data-setting="gap" min="0.05" max="0.35" step="0.01">
+      </div>
+
+      <h2>Playback</h2>
+      <label class="switch-row">
+        <span>Transition</span>
+        <input type="checkbox" data-setting="transition"><span class="switch"></span>
+      </label>
+      <label class="switch-row">
+        <span>Auto-play</span>
+        <input type="checkbox" data-setting="autoplay"><span class="switch"></span>
+      </label>
+      <label class="field inline">
+        <span class="label">Interval</span>
+        <span class="number"><input type="number" data-setting="interval" min="0.5" max="60" step="0.5"> s</span>
+      </label>
+
+      <div class="cube-only">
+        <h2>Cube</h2>
+        <div class="slider">
+          <div class="slider-head"><span>Face angle</span><output data-for="angle"></output></div>
+          <input type="range" data-setting="angle" min="0" max="60" step="1">
+        </div>
+      </div>
+
+      <button class="ghost" id="reset">Reset settings</button>
+    </aside>
+  </div>
+
+  <div class="drop-overlay" id="drop-overlay"><div><span id="drop-label">Drop images to add</span></div></div>
+
+  <script src="js/screen.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
