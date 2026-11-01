@@ -90,6 +90,7 @@ button { font: inherit; color: inherit; }
 .device {
   position: relative;
   isolation: isolate;
+  container-type: inline-size; /* button sizes scale with the device */
   width: clamp(220px, min(86cqi, 100svh - 340px), 720px);
   aspect-ratio: 1;
   margin-top: 4%;
@@ -150,6 +151,47 @@ button { font: inherit; color: inherit; }
   pointer-events: none;
 }
 canvas.screen { display: block; width: 100%; height: 100%; }
+
+/* Tactile buttons, centred in the bezel strip below the screen (bezel padding is 10.5%) */
+.buttons {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 10.5% / 2);
+  display: flex;
+  gap: 3.6cqi;
+  transform: translate(-50%, -50%);
+}
+.key {
+  --face: #ccc;
+  --side: #999;
+  width: 7.8cqi;
+  aspect-ratio: 40 / 44;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.key svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px rgba(30, 70, 66, 0.28)) drop-shadow(0 5px 6px rgba(30, 70, 66, 0.16));
+  transition: filter 0.09s;
+}
+.key .side { fill: var(--side); stroke: var(--side); }
+.key .face { fill: var(--face); stroke: var(--face); transition: transform 0.09s ease-out; }
+.key .sheen { fill: url(#key-sheen); stroke: url(#key-sheen); }
+.key:active .face { transform: translateY(3px); }
+.key:active svg { filter: drop-shadow(0 1px 1px rgba(30, 70, 66, 0.3)) drop-shadow(0 2px 3px rgba(30, 70, 66, 0.12)); }
+.key:focus-visible { outline: none; }
+.key:focus-visible svg { filter: drop-shadow(0 0 0.5px #fff) drop-shadow(0 0 3px rgba(255, 255, 255, 0.9)); }
+
+.key-diamond { --face: #ef9483; --side: #c8705f; }
+.key-circle { --face: #f3c86a; --side: #c99c3f; }
+.key-triangle { --face: #8dbbe6; --side: #6693c0; }
+.key-square { --face: #b9a3e3; --side: #927bc0; }
 
 /* Transport */
 .transport { display: flex; align-items: center; gap: 14px; }
